@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>3x3 Scroll Solver</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 30px; }
+    .grid { display: grid; grid-template-columns: repeat(3, 80px); gap: 10px; justify-content: center; }
+    button {
+      width: 80px; height: 80px; font-size: 18px;
+      border-radius: 10px; border: 2px solid #333; cursor: pointer;
+    }
+    .out { background: #ffcc66; }
+    .in { background: #ddd; }
+    #solution { margin-top: 25px; font-size: 18px; white-space: pre-line; }
+  </style>
+</head>
+<body>
+
+<h1>3x3 Scroll Solver</h1>
+<p>Click the scrolls that are sticking out, then press Solve.</p>
+
+<div class="grid" id="grid"></div>
+
+<br>
+<button onclick="solve()">Solve</button>
+<button onclick="resetGrid()">Reset</button>
+
+<div id="solution"></div>
+
+<script>
+const N = 3;
+let state = Array(9).fill(0);
+
+function drawGrid() {
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+
+  for (let i = 0; i < 9; i++) {
+    const btn = document.createElement("button");
+    const r = Math.floor(i / 3) + 1;
+    const c = (i % 3) + 1;
+
+    btn.textContent = state[i] ? `${r},${c}\nOUT` : `${r},${c}\nIN`;
+    btn.className = state[i] ? "out" : "in";
+
+    btn.onclick = () => {
+      state[i] = 1 - state[i];
+      drawGrid();
+    };
+
+    grid.appendChild(btn);
+  }
+}
+
+function push(board, i) {
+  if (board[i] === 0) return null;
+
+  let newBoard = board.slice();
+  newBoard[i] = 0;
+
+  const r = Math.floor(i / 3);
+  const c = i % 3;
+  const dirs = [[-1,0], [1,0], [0,-1], [0,1]];
+
+  for (const [dr, dc] of dirs) {
+    const nr = r + dr;
+    const nc = c + dc;
+
+    if (nr >= 0 && nr < 3 && nc >= 0 && nc < 3) {
+      const j = nr * 3 + nc;
+      newBoard[j] = 1 - newBoard[j];
+    }
+  }
+
+  return newBoard;
+}
+
+function solve() {
+  let queue = [{ board: state.slice(), path: [] }];
+  let seen = new Set();
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    const key = current.board.join("");
+
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    if (current.board.every(x => x === 0)) {
+      if (current.path.length === 0) {
+        document.getElementById("solution").textContent = "Already solved.";
+      } else {
+        document.getElementById("solution").textContent =
+          "Push these scrolls in order:\n" +
+          current.path.map(i => {
+            const r = Math.floor(i / 3) + 1;
+            const c = (i % 3) + 1;
+            return `${r},${c}`;
+          }).join("\n");
+      }
+      return;
+    }
+
+    for (let i = 0; i < 9; i++) {
+      const next = push(current.board, i);
+      if (next !== null) {
+        queue.push({
+          board: next,
+          path: current.path.concat(i)
+        });
+      }
+    }
+  }
+
+  document.getElementById("solution").textContent = "No solution found.";
+}
+
+function resetGrid() {
+  state = Array(9).fill(0);
+  document.getElementById("solution").textContent = "";
+  drawGrid();
+}
+
+drawGrid();
+</script>
+
+</body>
+</html>
